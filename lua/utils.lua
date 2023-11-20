@@ -1,20 +1,5 @@
 local M = {}
 
-function M.table_to_string(tbl, count)
-	count = count or 0
-	local str = "[ "
-
-	for k, v in pairs(tbl) do
-		if type(v) == "table" and count < 4 then
-			str = str .. k .. ": " .. M.tableToString(v, count + 1)
-		else
-			str = str .. k .. ": " .. tostring(v) .. "| "
-		end
-	end
-
-	return str .. "], "
-end
-
 function M.window_get_background_color(window_id)
 	local window_highlight = vim.api.nvim_get_option_value("winhighlight", { win = window_id })
 

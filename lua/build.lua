@@ -2,17 +2,27 @@ local utils = require("utils")
 
 local M = {}
 
+local last_active_buffer_id = nil
+
+function M.set_active_buffer(buffer_id)
+	last_active_buffer_id = buffer_id
+end
+
 function M.build_buffer(buffer_id)
 	local filename = vim.fn.fnamemodify(vim.fn.bufname(buffer_id), ":t")
 	local max_length = 20
 	local truncated_string = #filename > max_length and filename:sub(1, max_length) .. "..." or filename
 
-	local highlight = buffer_id == vim.api.nvim_get_current_buf() and "%#CurSearch#" or "%#NormalNC#"
+	if truncated_string == "" then
+		truncated_string = "[ Empty File ]"
+	end
+
+	local highlight = buffer_id == last_active_buffer_id and "%#CurSearch#" or "%#SignColumn#"
 	return highlight .. "   " .. truncated_string .. "    "
 end
 
 function M.build_section_left(window_id, available_width)
-	local highlight = utils.window_get_background_color(window_id) or "%#CurSearch#"
+	local highlight = utils.window_get_background_color(window_id) or "%#SignColumn#"
 	return highlight .. string.rep(" ", available_width)
 end
 
@@ -22,14 +32,14 @@ function M.build_section_center(available_width)
 	local section = ""
 
 	for _, value in pairs(modifiable_buffers) do
-		section = section .. M.build_buffer(value) .. "%#NvimTreeNormal#"
+		section = section .. M.build_buffer(value) .. "%#SignColumn#"
 	end
 
-	return utils.overlay_strings("%#NvimTreeNormal#" .. string.rep(" ", available_width), section)
+	return utils.overlay_strings("%#SignColumn#" .. string.rep(" ", available_width), section)
 end
 
 function M.build_section_right(window_id, available_width)
-	local highlight = utils.window_get_background_color(window_id) or "%#NormalNC#"
+	local highlight = utils.window_get_background_color(window_id) or "%#SignColumn#"
 	return highlight .. string.rep(" ", available_width)
 end
 

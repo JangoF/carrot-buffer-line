@@ -1,4 +1,5 @@
 local build = require("build")
+local commands = require("carrot-buffer-line/commands")
 
 local M = {}
 
@@ -69,6 +70,21 @@ function M.setup(options)
 	vim.schedule(function()
 		vim.cmd.redrawtabline()
 	end)
+
+	local CARROT_BUFFER_LINE_CMD = "CarrotBufferLineCMD"
+	vim.api.nvim_create_augroup(CARROT_BUFFER_LINE_CMD, { clear = true })
+	vim.api.nvim_create_autocmd("BufEnter", {
+		group = CARROT_BUFFER_LINE_CMD,
+		callback = function()
+			local active_buffer_id = vim.api.nvim_get_current_buf()
+
+			if vim.bo[active_buffer_id].modifiable then
+				build.set_active_buffer(active_buffer_id)
+			end
+		end,
+	})
+
+  commands.register_commands()
 end
 
 return M
