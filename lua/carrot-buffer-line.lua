@@ -1,5 +1,6 @@
-local build = require("build")
+local build = require("carrot-buffer-line/build")
 local commands = require("carrot-buffer-line/commands")
+local default = require("carrot-buffer-line/default")
 
 local M = {}
 
@@ -54,12 +55,7 @@ function _G.build_carrot_tabline()
 	return section_0 .. section_1 .. section_2
 end
 
-M.config = {
-	build_buffer = build.build_buffer,
-	build_section_left = build.build_section_left,
-	build_section_right = build.build_section_right,
-	build_section_center = build.build_section_center,
-}
+M.config = default
 
 function M.setup(options)
 	M.config = vim.tbl_extend("force", M.config, options or {})

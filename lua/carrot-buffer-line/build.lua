@@ -1,4 +1,4 @@
-local utils = require("utils")
+local utils = require("carrot-buffer-line/utils")
 
 local M = {}
 
@@ -8,12 +8,18 @@ function M.set_active_buffer(buffer_id)
 	last_active_buffer_id = buffer_id
 end
 
+function M.get_active_buffer()
+  return last_active_buffer_id
+end
+
 function M.build_buffer(buffer_id)
 	local filename = vim.fn.fnamemodify(vim.fn.bufname(buffer_id), ":t")
-	local max_length = 20
-	local truncated_string = #filename > max_length and filename:sub(1, max_length) .. "..." or filename
+	local max_length = 40
+	local truncated_string = filename
 
-	if truncated_string == "" then
+	if #filename > max_length then
+		truncated_string = filename:sub(1, max_length - 3) .. "..."
+	elseif truncated_string == "" then
 		truncated_string = "[ Empty File ]"
 	end
 

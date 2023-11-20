@@ -35,4 +35,18 @@ function M.overlay_strings(baseString, overlayString)
 	return result
 end
 
+function M.get_modifiable_buffers()
+	local modifiable_buffers = {}
+
+	local buffers = vim.api.nvim_list_bufs()
+
+	for _, buffer in ipairs(buffers) do
+		if vim.api.nvim_buf_is_valid(buffer) and vim.api.nvim_get_option_value("modifiable", { buf = buffer }) then
+			table.insert(modifiable_buffers, buffer)
+		end
+	end
+
+	return modifiable_buffers
+end
+
 return M
