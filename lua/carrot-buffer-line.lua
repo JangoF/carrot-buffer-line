@@ -3,9 +3,6 @@ local events = require("carrot-buffer-line/events")
 
 local default = require("carrot-buffer-line/default")
 local data = require("carrot-buffer-line/data")
--- local utils = require("carrot-buffer-line/utils")
-
--- local carrot_buffer = require("carrot-buffer-line/carrot_buffer")
 local carrot_shelf = require("carrot-buffer-line/carrot_shelf")
 
 local M = {}
@@ -73,20 +70,6 @@ function M.setup(options)
 	vim.schedule(function()
 		vim.cmd.redrawtabline()
 	end)
-
-	-- local CARROT_BUFFER_LINE_CMD = "CarrotBufferLineCMD"
-	-- vim.api.nvim_create_augroup(CARROT_BUFFER_LINE_CMD, { clear = true })
-	-- vim.api.nvim_create_autocmd("BufEnter", {
-	-- 	group = CARROT_BUFFER_LINE_CMD,
-	-- 	callback = function()
-	-- 		local active_buffer_id = vim.api.nvim_get_current_buf()
-
-	-- 		if utils.check_is_buffer_valid(active_buffer_id) then
-	-- 			print(vim.inspect(M.shelf:get_buffer_list()))
-	-- 			M.shelf:push_buffer(active_buffer_id)
-	-- 		end
-	-- 	end,
-	-- })
 
 	commands.register_commands()
 	events.register_events()

@@ -1,4 +1,3 @@
-local utils = require("carrot-buffer-line/utils")
 local data = require("carrot-buffer-line/data")
 
 local M = {}
