@@ -1,8 +1,16 @@
-local build = require("carrot-buffer-line/build")
 local commands = require("carrot-buffer-line/commands")
+local events = require("carrot-buffer-line/events")
+
 local default = require("carrot-buffer-line/default")
+local data = require("carrot-buffer-line/data")
+-- local utils = require("carrot-buffer-line/utils")
+
+-- local carrot_buffer = require("carrot-buffer-line/carrot_buffer")
+local carrot_shelf = require("carrot-buffer-line/carrot_shelf")
 
 local M = {}
+M = vim.tbl_extend("force", M, default)
+M = vim.tbl_extend("force", M, data)
 
 function _G.build_carrot_tabline()
 	local screen_width = vim.api.nvim_get_option_value("columns", {})
@@ -37,7 +45,8 @@ function _G.build_carrot_tabline()
 				section_2 = M.config.build_section_right(window_right[2], window_width_right)
 			end
 		end
-		section_1 = M.config.build_section_center(screen_width - window_width_left - window_width_right)
+
+		section_1 = carrot_shelf.draw_carrot_shelf(M.shelf, screen_width - window_width_left - window_width_right)
 	elseif layout[1] == "leaf" then
 		local window = layout[2]
 		local buffer = vim.api.nvim_win_get_buf(window)
@@ -46,7 +55,7 @@ function _G.build_carrot_tabline()
 		local is_buffer_modifiable = vim.api.nvim_get_option_value("modifiable", { buf = buffer })
 
 		if is_buffer_modifiable then
-			section_0 = M.config.build_section_center(window_width)
+			section_0 = carrot_shelf.draw_carrot_shelf(M.shelf, window_width)
 		else
 			section_1 = M.config.build_section_left(window, window_width)
 		end
@@ -54,8 +63,6 @@ function _G.build_carrot_tabline()
 
 	return section_0 .. section_1 .. section_2
 end
-
-M.config = default
 
 function M.setup(options)
 	M.config = vim.tbl_extend("force", M.config, options or {})
@@ -67,20 +74,22 @@ function M.setup(options)
 		vim.cmd.redrawtabline()
 	end)
 
-	local CARROT_BUFFER_LINE_CMD = "CarrotBufferLineCMD"
-	vim.api.nvim_create_augroup(CARROT_BUFFER_LINE_CMD, { clear = true })
-	vim.api.nvim_create_autocmd("BufEnter", {
-		group = CARROT_BUFFER_LINE_CMD,
-		callback = function()
-			local active_buffer_id = vim.api.nvim_get_current_buf()
+	-- local CARROT_BUFFER_LINE_CMD = "CarrotBufferLineCMD"
+	-- vim.api.nvim_create_augroup(CARROT_BUFFER_LINE_CMD, { clear = true })
+	-- vim.api.nvim_create_autocmd("BufEnter", {
+	-- 	group = CARROT_BUFFER_LINE_CMD,
+	-- 	callback = function()
+	-- 		local active_buffer_id = vim.api.nvim_get_current_buf()
 
-			if vim.bo[active_buffer_id].modifiable then
-				build.set_active_buffer(active_buffer_id)
-			end
-		end,
-	})
+	-- 		if utils.check_is_buffer_valid(active_buffer_id) then
+	-- 			print(vim.inspect(M.shelf:get_buffer_list()))
+	-- 			M.shelf:push_buffer(active_buffer_id)
+	-- 		end
+	-- 	end,
+	-- })
 
-  commands.register_commands()
+	commands.register_commands()
+	events.register_events()
 end
 
 return M

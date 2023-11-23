@@ -22,17 +22,18 @@ function M.window_get_background_color(window_id)
 end
 
 function M.overlay_strings(baseString, overlayString)
-	local result = ""
+	local result = {}
+	local resultIndex = 1
 
 	for i = 1, #baseString do
 		local baseChar = baseString:sub(i, i)
 		local overlayChar = overlayString:sub(i, i)
 
-		local mergedChar = overlayChar ~= "" and overlayChar or baseChar
-		result = result .. mergedChar
+		result[resultIndex] = overlayChar ~= "" and overlayChar or baseChar
+		resultIndex = resultIndex + 1
 	end
 
-	return result
+	return table.concat(result)
 end
 
 function M.get_modifiable_buffers()
@@ -41,12 +42,18 @@ function M.get_modifiable_buffers()
 	local buffers = vim.api.nvim_list_bufs()
 
 	for _, buffer in ipairs(buffers) do
-		if vim.api.nvim_buf_is_valid(buffer) and vim.api.nvim_get_option_value("modifiable", { buf = buffer }) then
+		if M.check_is_buffer_valid(buffer) then
 			table.insert(modifiable_buffers, buffer)
 		end
 	end
 
 	return modifiable_buffers
+end
+
+function M.check_is_buffer_valid(buffer_id)
+	return vim.api.nvim_buf_is_valid(buffer_id)
+		and vim.api.nvim_get_option_value("modifiable", { buf = buffer_id })
+		and vim.fn.bufname(buffer_id) ~= ""
 end
 
 return M
