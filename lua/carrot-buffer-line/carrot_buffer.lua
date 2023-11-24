@@ -22,8 +22,7 @@ M.draw_carrot_buffer = function(target_carrot_buffer, is_active)
 		truncated_string = truncated_string:sub(1, max_length - 3) .. "..."
 	end
 
-	local highlight = is_active and "%#CurSearch#" or "%#SignColumn#"
-	return highlight .. "   " .. truncated_string .. "    "
+	return (is_active and "%#CurSearch#" or "%#SignColumn#") .. "  " .. truncated_string .. "  "
 end
 
 return M

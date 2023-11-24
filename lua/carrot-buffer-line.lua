@@ -3,7 +3,8 @@ local events = require("carrot-buffer-line/events")
 
 local default = require("carrot-buffer-line/default")
 local data = require("carrot-buffer-line/data")
-local carrot_shelf = require("carrot-buffer-line/carrot_shelf")
+-- local carrot_shelf = require("carrot-buffer-line/carrot_shelf")
+local carrot_switcher = require("carrot-buffer-line/carrot_switcher")
 
 local M = {}
 M = vim.tbl_extend("force", M, default)
@@ -43,7 +44,7 @@ function _G.build_carrot_tabline()
 			end
 		end
 
-		section_1 = carrot_shelf.draw_carrot_shelf(M.shelf, screen_width - window_width_left - window_width_right)
+		section_1 = carrot_switcher.draw_carrot_switcher(M.switcher, screen_width - window_width_left - window_width_right)
 	elseif layout[1] == "leaf" then
 		local window = layout[2]
 		local buffer = vim.api.nvim_win_get_buf(window)
@@ -52,7 +53,7 @@ function _G.build_carrot_tabline()
 		local is_buffer_modifiable = vim.api.nvim_get_option_value("modifiable", { buf = buffer })
 
 		if is_buffer_modifiable then
-			section_0 = carrot_shelf.draw_carrot_shelf(M.shelf, window_width)
+			section_0 = carrot_switcher.draw_carrot_switcher(M.switcher, window_width)
 		else
 			section_1 = M.config.build_section_left(window, window_width)
 		end
@@ -71,8 +72,13 @@ function M.setup(options)
 		vim.cmd.redrawtabline()
 	end)
 
-	commands.register_commands()
+	local current_tab_id = vim.api.nvim_get_current_tabpage()
+	M.switcher:push_shelf(current_tab_id)
+	M.switcher:set_shelf_active(current_tab_id)
+  -- print(vim.inspect(M.switcher:get_shelf_list()[1]), M.switcher:get_shelf_list()[1]:get_shelf_id())
+
 	events.register_events()
+	commands.register_commands()
 end
 
 return M

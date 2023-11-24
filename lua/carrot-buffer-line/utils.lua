@@ -56,4 +56,8 @@ function M.check_is_buffer_valid(buffer_id)
 		and vim.fn.bufname(buffer_id) ~= ""
 end
 
+function M.count_characters_excluding_patterns(input_string)
+	return #string.gsub(input_string, "%%#.-#", "")
+end
+
 return M
