@@ -1,28 +1,34 @@
-local default = require("carrot-buffer-line/default")
+local ui_chunk = require("carrot-buffer-line/ui_chunk")
 
 local M = {}
+M.__index = M
+M._instances = {}
 
-M.build_carrot_buffer = function(target_buffer_id)
-	local carrot_buffer = {}
-	local buffer_id = target_buffer_id
-
-	function carrot_buffer:get_buffer_id()
-		return buffer_id
+function M.create(buffer_id)
+	if M._instances[buffer_id] then
+		M._instances[buffer_id]._copy_count = M._instances[buffer_id]._copy_count + 1
+		return M._instances[buffer_id]
 	end
 
-	return carrot_buffer
+	local new_instance = setmetatable({ _buffer_id = buffer_id, _copy_count = 1 }, M)
+	M._instances[buffer_id] = new_instance
+	return new_instance
 end
 
-M.draw_carrot_buffer = function(target_carrot_buffer, is_active)
-	local max_length = math.max(default.config.max_buffer_name_length, 3)
-	local buffer_id = vim.fn.bufname(target_carrot_buffer:get_buffer_id())
-	local truncated_string = vim.fn.fnamemodify(buffer_id, ":t")
-
-	if #truncated_string > max_length then
-		truncated_string = truncated_string:sub(1, max_length - 3) .. "..."
+function M:destroy()
+	if self._copy_count > 1 then
+		self._copy_count = self._copy_count - 1
+	else
+		M._instances[self._buffer_id] = nil
 	end
+end
 
-	return (is_active and "%#CurSearch#" or "%#SignColumn#") .. "  " .. truncated_string .. "  "
+function M:build_ui(is_active)
+	local buffer_name = vim.fn.fnamemodify(vim.fn.bufname(self._buffer_id), ":t")
+	local result = {}
+
+	table.insert(result, ui_chunk.new("  " .. buffer_name .. "  ", is_active and "CurSearch" or "SignColumn"))
+	return result
 end
 
 return M

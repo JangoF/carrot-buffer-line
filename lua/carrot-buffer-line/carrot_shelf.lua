@@ -1,115 +1,95 @@
-local utils = require("carrot-buffer-line/utils")
-local buffer = require("carrot-buffer-line/carrot_buffer")
+local ordered_map = require("carrot-buffer-line/ordered_map")
+local utilities = require("carrot-buffer-line/utilities")
+local carrot_buffer = require("carrot-buffer-line/carrot_buffer")
 
 local M = {}
+M.__index = M
+M._instances = {}
 
-M.build_carrot_shelf = function(target_shelf_id)
-	local carrot_shelf = {}
-	local shelf_id = target_shelf_id
-
-	local carrot_buffer_list = {}
-	local active_carrot_buffer = nil
-
-	function carrot_shelf:get_shelf_id()
-		return shelf_id
+function M.create(tab_id)
+	if M._instances[tab_id] then
+		M._instances[tab_id]._copy_count = M._instances[tab_id]._copy_count + 1
+		return M._instances[tab_id]
 	end
 
-	function carrot_shelf:get_buffer_list()
-		return carrot_buffer_list
+	local new_instance = setmetatable({
+		_tab_id = tab_id,
+		_copy_count = 1,
+		_buffers = ordered_map.new(),
+		_active_buffer_id = nil,
+	}, M)
+
+	M._instances[tab_id] = new_instance
+	return new_instance
+end
+
+function M:destroy()
+	if self._copy_count > 1 then
+		self._copy_count = self._copy_count - 1
+	else
+		M._instances[self._tab_id] = nil
+	end
+end
+
+function M:build_ui()
+	local result = {}
+
+	for _, buffer_id in pairs(self._buffers:get_ordered_array()) do
+		local current_buffer = self._buffers:get(buffer_id)
+		local current_buffer_ui = current_buffer:build_ui(buffer_id == self._active_buffer_id)
+		result = utilities.concatenate_arrays(result, current_buffer_ui)
 	end
 
-	function carrot_shelf:get_active_buffer()
-		return active_carrot_buffer
+	return result
+end
+
+function M:_insert_buffer(buffer_id)
+	if self._buffers:get(buffer_id) == nil then
+		self._buffers:insert(buffer_id, carrot_buffer.create(buffer_id))
 	end
 
-	function carrot_shelf:set_buffer_active(buffer_id)
-		local carrot_buffer = self:check_is_buffer_exist(buffer_id)
+	self._active_buffer_id = buffer_id
+end
 
-		if carrot_buffer ~= nil then
-			active_carrot_buffer = carrot_buffer_list[carrot_buffer]
-		end
-	end
+function M:_remove_buffer(buffer_id)
+	local buffer = self._buffers:get(buffer_id)
 
-	function carrot_shelf:set_buffer_inactive(buffer_id)
-		local carrot_buffer = self:check_is_buffer_exist(buffer_id)
+	if buffer then
+		buffer:destroy()
+		local next_buffer_id = nil
 
-		if carrot_buffer ~= nil then
-			active_carrot_buffer = nil
-		end
-	end
+		if buffer_id == self._active_buffer_id then
+			local ordered_buffers = self._buffers:get_ordered_array()
+			local buffer_index = utilities.index_of(ordered_buffers, buffer_id)
 
-	function carrot_shelf:push_buffer(buffer_id)
-		if self:check_is_buffer_exist(buffer_id) == nil and utils.check_is_buffer_valid(buffer_id) then
-			table.insert(carrot_buffer_list, buffer.build_carrot_buffer(buffer_id))
-		end
-	end
-
-	function carrot_shelf:pull_buffer(buffer_id)
-		local carrot_buffer = self:check_is_buffer_exist(buffer_id)
-		if carrot_buffer ~= nil then
-			return table.remove(carrot_buffer_list, carrot_buffer)
-		end
-	end
-
-	function carrot_shelf:check_is_buffer_exist(buffer_id)
-		for index, value in ipairs(carrot_buffer_list) do
-			if value:get_buffer_id() == buffer_id then
-				return index
+			if buffer_index < #ordered_buffers then
+				next_buffer_id = ordered_buffers[buffer_index + 1]
+			elseif #ordered_buffers > 1 then
+				next_buffer_id = ordered_buffers[buffer_index - 1]
 			end
 		end
 
-		return nil
+		self._buffers:remove(buffer_id)
+		self._active_buffer_id = next_buffer_id
 	end
-
-	return carrot_shelf
 end
 
-M.switch_to_next_buffer = function(target_carrot_shelf)
-	local carrot_buffer_list = target_carrot_shelf:get_buffer_list()
-	local active_buffer = target_carrot_shelf:get_active_buffer()
-	local active_buffer_index = target_carrot_shelf:check_is_buffer_exist(active_buffer:get_buffer_id())
-
-	if active_buffer_index == #carrot_buffer_list then
-		target_carrot_shelf:set_buffer_active(carrot_buffer_list[1])
-	else
-		target_carrot_shelf:set_buffer_active(carrot_buffer_list[active_buffer_index + 1])
-	end
-
-	return target_carrot_shelf:get_active_buffer()
-end
-
-M.switch_to_prev_buffer = function(target_carrot_shelf)
-	local carrot_buffer_list = target_carrot_shelf:get_buffer_list()
-	local active_buffer = target_carrot_shelf:get_active_buffer()
-	local active_buffer_index = target_carrot_shelf:check_is_buffer_exist(active_buffer:get_buffer_id())
-
-	if active_buffer_index == 1 then
-		target_carrot_shelf:set_buffer_active(carrot_buffer_list[#carrot_buffer_list])
-	else
-		target_carrot_shelf:set_buffer_active(carrot_buffer_list[active_buffer_index - 1])
-	end
-
-	return target_carrot_shelf:get_active_buffer()
-end
-
-M.draw_carrot_shelf = function(target_carrot_shelf, available_width)
-	local active_carrot_buffer = target_carrot_shelf:get_active_buffer()
-	local buffer_list = target_carrot_shelf:get_buffer_list()
-	local result = {}
-
-	for key, current_buffer in pairs(buffer_list) do
-		table.insert(result, buffer.draw_carrot_buffer(current_buffer, current_buffer == active_carrot_buffer))
-
-		if key ~= #buffer_list then
-			table.insert(result, "%#StatusLine# ")
+vim.api.nvim_create_autocmd("BufEnter", {
+	callback = function(arguments)
+		if utilities.check_is_buffer_valid(arguments.buf) then
+			local active_tab_id = vim.api.nvim_get_current_tabpage()
+			M._instances[active_tab_id]:_insert_buffer(arguments.buf)
 		end
-	end
+	end,
+})
 
-	local shelf_stirng = table.concat(result)
-	local shelf_string_width = utils.count_characters_excluding_patterns(shelf_stirng)
-
-	local result_stirng = shelf_stirng .. "%#StatusLine# " .. string.rep(" ", available_width - shelf_string_width)
-	return result_stirng
-end
+vim.api.nvim_create_autocmd("BufDelete", {
+	callback = function(arguments)
+		if utilities.check_is_buffer_valid(arguments.buf) then
+			local active_tab_id = vim.api.nvim_get_current_tabpage()
+			M._instances[active_tab_id]:_remove_buffer(arguments.buf)
+		end
+	end,
+})
 
 return M
